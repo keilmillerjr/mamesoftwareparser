@@ -1,6 +1,6 @@
 # MAME Software Parser
 
-*v.01*
+*v.02*
 
 by Keil Miller Jr
 
@@ -18,29 +18,13 @@ MAME Software Parser requires a software list file to be generated from the MAME
   
 ## Usage
 
-### Help
+    mamesoftwareparser.rb SOFTWARELIST.XML [OPTIONS]
+        -n, --noclones                   No Clones
+        -s, --source SOURCE              Source Folder
+        -d, --destination DESTINATION    Destination Folder
+        -h, --help                       Displays Help
 
-    ruby mamesoftwareparser.rb --help
-
-### Drivers
-
-Print driver list in terminal window.
-
-    ruby mamesoftwareparser.rb drivers [drivername.xml]
-
-### Roms
-
-Print rom list in terminal window.
-
-    ruby mamesoftwareparser.rb roms [drivername.xml]
-
-### Export
-
-Copy files with same base name as drivers and roms from source to destination.
-
-    ruby mamesoftwareparser.rb export [drivername.xml] [source] [destination]
-
-*Shorthand commands for help (nil), drivers (d), roms (r), and export (e) may be used.*
+Passing -s and -d will make the script copy files with the same base name as the drivers and roms from source to destination. Otherwise, the romset will be displayed as a list in the terminal.
 
 ## Contribute
 
