@@ -38,7 +38,7 @@ raise OptionParser::MissingArgument if (options[:source] && !options[:destinatio
 
 # romset class
 class Romset
-  attr_reader :roms
+  attr_reader :drivers, :roms
 
   def initialize(xmlpath)
     # define drivers and roms
@@ -71,33 +71,67 @@ class Romset
   end
 
   # copy files with same base name as drivers and roms from source to destination
-  def copy(source, destination)
-    # file count
+  def copy(source, destination, noclones: false)
     count = 0
 
-    Dir.open(source).each do |file_name|
-      if (@drivers.include? File.basename(file_name, File.extname(file_name))) || (@roms.any? { |rom| rom[:name] == File.basename(file_name, File.extname(file_name)) })
-        FileUtils.cp File.join(source, file_name), File.join(destination, file_name)
-        puts "copied #{file_name.to_s}"
-        count += 1
+    if @drivers.count > 0
+      puts "Driver files"
+
+      @drivers.each do |driver|
+        Dir.glob(source + '/' + driver + '.*') do |filename|
+          FileUtils.cp File.expand_path(filename), destination
+          count += 1
+          puts "  copied #{File.basename(filename).to_s}"
+        end
+      end
+    end
+
+    if @roms.count > 0
+      puts "Rom files"
+
+      @roms.each do |rom|
+        next if noclones && rom[:cloneof]
+
+        Dir.glob(source + '/' + rom[:name] + '.*') do |filename|
+          FileUtils.cp File.expand_path(filename), destination
+          count += 1
+          puts "  copied #{File.basename(filename).to_s}"
+        end
       end
     end
 
     # print results
     puts "\n"
-    puts "Total Files Exported: #{count}"
+    puts "Total files copied: #{count}"
   end
-  
+
   # print rom list in terminal window
   def print(noclones: false)
-    @roms.each do |rom|
-      next if noclones && rom[:cloneof]
-      !rom[:cloneof] ? (puts "* #{rom[:name]}") : (puts "  #{rom[:name]}")
+    if @drivers.count > 0
+      puts "Driver files"
+
+      @drivers.each do |driver|
+        puts "  #{driver.to_s}"
+      end
     end
+
+    if @roms.count > 0
+      puts "Rom files"
+
+      @roms.each do |rom|
+        next if noclones && rom[:cloneof]
+        !rom[:cloneof] ? (puts "* #{rom[:name]}") : (puts "  #{rom[:name]}")
+      end
+    end
+
+    # print results
     puts "\n"
-    puts "Parents: #{@roms.count { |rom| !rom[:cloneof] }}" unless noclones
-    puts "Clones: #{@roms.count { |rom| rom[:cloneof] }}" unless noclones
-    !noclones ? (puts "Total: #{@roms.count}") : (puts "Total: #{@roms.count { |rom| !rom[:cloneof] }}")
+    puts "Drivers: #{@drivers.count}"
+    puts "Roms: #{@roms.count}"
+    if !noclones
+      puts "  Parents: #{@roms.count { |rom| !rom[:cloneof] }}"
+      puts "  Clones: #{@roms.count { |rom| rom[:cloneof] }}"
+    end
   end
 end
 
@@ -106,7 +140,7 @@ romset = Romset.new(ARGV[0])
 
 # Copy or print romset
 if (options[:source] && options[:destination])
-  romset.copy(options[:source], options[:destination])
+  romset.copy(options[:source], options[:destination], noclones: options[:noclones])
 else
   romset.print(noclones: options[:noclones])
 end
