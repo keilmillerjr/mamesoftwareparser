@@ -1,6 +1,6 @@
 # MAME Software Parser
 
-*v.02*
+*v.1*
 
 by Keil Miller Jr
 
@@ -19,12 +19,18 @@ MAME Software Parser requires a software list file to be generated from the MAME
 ## Usage
 
     mamesoftwareparser.rb SOFTWARELIST.XML [OPTIONS]
-        -n, --noclones                   No Clones
         -s, --source SOURCE              Source Folder
         -d, --destination DESTINATION    Destination Folder
+        -n, --noclones                   No Clones
         -h, --help                       Displays Help
 
-Passing -s and -d will make the script copy files with the same base name as the drivers and roms from source to destination. Otherwise, the romset will be displayed as a list in the terminal.
+Passing SOFTWARELIST.XML without any options will print a list of drivers and roms from the xml file.
+
+Passing the -s option will run an audit on the source folder, printing matching and missing files.
+
+Passing -s and -d will copy files with the same base name as the drivers and roms from the source folder to the destination folder.
+
+Pass the -n option will not include clones when copying files.
 
 ## Contribute
 

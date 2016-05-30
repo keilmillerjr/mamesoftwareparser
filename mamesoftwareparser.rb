@@ -13,16 +13,16 @@ options = {}
 option_parser = OptionParser.new do |opts|
   opts.banner = "Usage: mamesoftwareparser.rb SOFTWARELIST.XML [OPTIONS]"
 
-  opts.on('-n', '--noclones', 'No Clones') do
-    options[:noclones] = true
-  end
-
   opts.on('-s', '--source SOURCE', 'Source Folder') do |source|
     options[:source] = source
   end
 
   opts.on('-d', '--destination DESTINATION', 'Destination Folder') do |destination|
     options[:destination] = destination
+  end
+  
+  opts.on('-n', '--noclones', 'No Clones') do
+    options[:noclones] = true
   end
 
   opts.on('-h', '--help', 'Displays Help') do
@@ -33,17 +33,13 @@ end
 
 option_parser.parse!
 
-# Raise an error if only source or destination options is provided
-raise OptionParser::MissingArgument if (options[:source] && !options[:destination]) || (!options[:source] && options[:destination])
-
 # romset class
 class Romset
-  attr_reader :drivers, :roms
+  attr_reader :list
 
   def initialize(xmlpath)
-    # define drivers and roms
-    @drivers = []
-    @roms = []
+    # define list
+    @list = []
 
     # parse softwarelist
     softwarelist = File.open(xmlpath) do |data|
@@ -51,99 +47,107 @@ class Romset
 
       # add drivers
       xml.elements.each('softwarelists/softwarelist') do |element|
-        @drivers.push element.attributes['name']
+        driver = { name: element.attributes['name'] }
+        driver[:type] = 'driver'
+        @list << driver
       end
 
       # add roms
       xml.elements.each('softwarelists/softwarelist/software') do |element|
-        name = element.attributes['name']
-        cloneof = element.attributes['cloneof']
-
-        rom = { name: name }
-        rom[:cloneof] = cloneof if cloneof
-        @roms << rom
+        rom = { name: element.attributes['name'] }
+        element.attributes['cloneof'].nil? ? rom[:type] = 'rom' : rom[:type] = 'clone'
+        @list << rom
       end
     end
 
-    # sort drivers and roms
-    @drivers.sort!
-    @roms.sort_by! { |rom| rom[:name] }
+    # sort list by name
+    @list.sort_by! { |entry| entry[:name] }
   end
-
-  # copy files with same base name as drivers and roms from source to destination
-  def copy(source, destination, noclones: false)
+  
+  def print_list
+    # print drivers
+    puts "Drivers = #{ @list.count { |entry| entry[:type] == 'driver'} }"
+    @list.each do |entry|
+      puts "  #{entry[:name]}" if entry[:type] == 'driver'
+    end
+    puts
+    
+    # print roms
+    puts "Roms = #{ @list.count { |entry| entry[:type] == 'rom'} }"
+    @list.each do |entry|
+      puts "  #{entry[:name]}" if entry[:type] == 'rom'
+    end
+    puts
+    
+    # print clones
+    puts "Clones = #{ @list.count { |entry| entry[:type] == 'clone'} }"
+    @list.each do |entry|
+      puts "  #{entry[:name]}" if entry[:type] == 'clone'
+    end
+    puts
+    
+    # print total games
+    puts "Total games = #{ list.count { |entry| entry[:type] == 'rom' || entry[:type] == 'clone' } }"
+  end
+  
+  def audit_media(source)
+    @list.each do |entry|
+      Dir.glob(source + '/' + entry[:name] + '.*') do
+        entry[:match] = true
+      end
+      entry[:match] = false if !entry[:match]
+    end
+  end
+  
+  def print_audit(source)
+    # audit media
+    audit_media(source)
+    
+    # print matching media
+    puts "Matching media = #{ @list.count { |entry| entry[:match] == true } }"
+    @list.each do |entry|
+      puts "  #{entry[:name]}" if entry[:match] == true
+    end
+    puts
+    
+    # print missing media
+    puts "Missing Media = #{ @list.count { |entry| entry[:match] == false } }"
+    @list.each do |entry|
+      puts "  #{entry[:name]}" if entry[:match] == false
+    end
+  end
+  
+  def copy_media(source, destination, noclones: false)
+    puts "Copying matching media. This may take some time."
     count = 0
-
-    if @drivers.count > 0
-      puts "Driver files"
-
-      @drivers.each do |driver|
-        Dir.glob(source + '/' + driver + '.*') do |filename|
-          FileUtils.cp File.expand_path(filename), destination
-          count += 1
-          puts "  copied #{File.basename(filename).to_s}"
-        end
+    
+    @list.each do |entry|
+      next if noclones && entry[:type] == 'clone'
+    
+      Dir.glob(source + '/' + entry[:name] + '.*') do |filename|
+        FileUtils.cp File.expand_path(filename), destination
+        count += 1
+        puts "  copied #{File.basename(filename).to_s}"
       end
     end
-
-    if @roms.count > 0
-      puts "Rom files"
-
-      @roms.each do |rom|
-        next if noclones && rom[:cloneof]
-
-        Dir.glob(source + '/' + rom[:name] + '.*') do |filename|
-          FileUtils.cp File.expand_path(filename), destination
-          count += 1
-          puts "  copied #{File.basename(filename).to_s}"
-        end
-      end
-    end
-
+    
     # print results
     puts "\n"
     puts "Total files copied: #{count}"
   end
-
-  # print rom list in terminal window
-  def print(noclones: false)
-    if @drivers.count > 0
-      puts "Driver files"
-
-      @drivers.each do |driver|
-        puts "  #{driver.to_s}"
-      end
-    end
-
-    if @roms.count > 0
-      puts "Rom files"
-
-      @roms.each do |rom|
-        next if noclones && rom[:cloneof]
-        !rom[:cloneof] ? (puts "* #{rom[:name]}") : (puts "  #{rom[:name]}")
-      end
-    end
-
-    # print results
-    puts "\n"
-    puts "Drivers: #{@drivers.count}"
-    puts "Roms: #{@roms.count}"
-    if !noclones
-      puts "  Parents: #{@roms.count { |rom| !rom[:cloneof] }}"
-      puts "  Clones: #{@roms.count { |rom| rom[:cloneof] }}"
-    end
-  end
 end
 
-# Create romset
+# create romset
 romset = Romset.new(ARGV[0])
 
-# Copy or print romset
-if (options[:source] && options[:destination])
-  romset.copy(options[:source], options[:destination], noclones: options[:noclones])
-else
-  romset.print(noclones: options[:noclones])
-end
+# print romset
+romset.print_list if options.count == 0
+
+# audit media
+romset.print_audit(options[:source]) if options[:source] && !options[:destination]
+
+# copy media
+romset.copy_media(options[:source], options[:destination], noclones: options[:noclones]) if options[:source] && options[:destination]
 
 # exit ruby script
 exit
