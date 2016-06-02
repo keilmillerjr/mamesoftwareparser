@@ -49,6 +49,7 @@ class Romset
       xml.elements.each('softwarelists/softwarelist') do |element|
         driver = { name: element.attributes['name'] }
         driver[:type] = 'driver'
+        driver[:description] = element.attributes['description']
         @list << driver
       end
 
@@ -56,6 +57,7 @@ class Romset
       xml.elements.each('softwarelists/softwarelist/software') do |element|
         rom = { name: element.attributes['name'] }
         element.attributes['cloneof'].nil? ? rom[:type] = 'rom' : rom[:type] = 'clone'
+        rom[:description] = element.elements['description'].text
         @list << rom
       end
     end
@@ -68,21 +70,21 @@ class Romset
     # print drivers
     puts "Drivers = #{ @list.count { |entry| entry[:type] == 'driver'} }"
     @list.each do |entry|
-      puts "  #{entry[:name]}" if entry[:type] == 'driver'
+      puts "  #{entry[:name]} - #{entry[:description]}" if entry[:type] == 'driver'
     end
     puts
     
     # print roms
     puts "Roms = #{ @list.count { |entry| entry[:type] == 'rom'} }"
     @list.each do |entry|
-      puts "  #{entry[:name]}" if entry[:type] == 'rom'
+      puts "  #{entry[:name]} - #{entry[:description]}" if entry[:type] == 'rom'
     end
     puts
     
     # print clones
     puts "Clones = #{ @list.count { |entry| entry[:type] == 'clone'} }"
     @list.each do |entry|
-      puts "  #{entry[:name]}" if entry[:type] == 'clone'
+      puts "  #{entry[:name]} - #{entry[:description]}" if entry[:type] == 'clone'
     end
     puts
     
@@ -106,7 +108,7 @@ class Romset
     # print matching media
     puts "Matching media = #{ @list.count { |entry| entry[:match] == true } }"
     @list.each do |entry|
-      puts "  #{entry[:name]}" if entry[:match] == true
+      puts "  #{entry[:name]} - #{entry[:description]}" if entry[:match] == true
     end
     puts
     
@@ -115,8 +117,8 @@ class Romset
     puts "Missing Media = #{ @list.count { |entry| entry[:match] == false && entry[:type] != 'clone' } }" if noclones
     
     @list.each do |entry|
-      puts "  #{entry[:name]}" if entry[:match] == false if !noclones
-      puts "  #{entry[:name]}" if entry[:match] == false && entry[:type] != 'clone' if noclones
+      puts "  #{entry[:name]} - #{entry[:description]}" if entry[:match] == false if !noclones
+      puts "  #{entry[:name]} - #{entry[:description]}" if entry[:match] == false && entry[:type] != 'clone' if noclones
     end
   end
   
