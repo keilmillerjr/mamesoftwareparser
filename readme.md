@@ -1,7 +1,5 @@
 # MAME Software Parser
 
-*v.1*
-
 by Keil Miller Jr
 
 [http://keilmillerjr.com](http://keilmillerjr.com)
@@ -30,7 +28,7 @@ Passing the -s option will run an audit on the source folder, printing matching 
 
 Passing -s and -d will copy files with the same base name as the drivers and roms from the source folder to the destination folder.
 
-Pass the -n option will not include clones when copying files.
+Pass the -n option will not include clones when running an audit or copying files.
 
 ## Contribute
 

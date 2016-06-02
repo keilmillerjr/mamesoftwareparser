@@ -99,7 +99,7 @@ class Romset
     end
   end
   
-  def print_audit(source)
+  def print_audit(source, noclones: false)
     # audit media
     audit_media(source)
     
@@ -111,9 +111,12 @@ class Romset
     puts
     
     # print missing media
-    puts "Missing Media = #{ @list.count { |entry| entry[:match] == false } }"
+    puts "Missing Media = #{ @list.count { |entry| entry[:match] == false } }" if !noclones
+    puts "Missing Media = #{ @list.count { |entry| entry[:match] == false && entry[:type] != 'clone' } }" if noclones
+    
     @list.each do |entry|
-      puts "  #{entry[:name]}" if entry[:match] == false
+      puts "  #{entry[:name]}" if entry[:match] == false if !noclones
+      puts "  #{entry[:name]}" if entry[:match] == false && entry[:type] != 'clone' if noclones
     end
   end
   
@@ -144,7 +147,7 @@ romset = Romset.new(ARGV[0])
 romset.print_list if options.count == 0
 
 # audit media
-romset.print_audit(options[:source]) if options[:source] && !options[:destination]
+romset.print_audit(options[:source], noclones: options[:noclones]) if options[:source] && !options[:destination]
 
 # copy media
 romset.copy_media(options[:source], options[:destination], noclones: options[:noclones]) if options[:source] && options[:destination]
